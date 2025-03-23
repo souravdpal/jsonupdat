@@ -5,105 +5,170 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product JSON Manager</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        input, select, button { display: block; margin-bottom: 10px; padding: 5px; width: 300px; }
-        button { padding: 10px; cursor: pointer; background: #007bff; color: white; border: none; }
-        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+        input, select, button { width: 90%; max-width: 400px; margin-bottom: 10px; padding: 10px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #cccccc; cursor: not-allowed; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; text-align: left; max-width: 400px; margin: 10px auto; }
+        .error { color: red; font-size: 14px; }
+        @media (max-width: 500px) { input, select, button { width: 100%; } }
     </style>
 </head>
 <body>
     <h2>Enter Product Details</h2>
     
-    <select id="fileChoice">
+    <select id="fileChoice" onchange="fetchExistingJSON()">
         <option value="data.json">Update Data JSON</option>
         <option value="announcements.json">Update Announcements JSON</option>
     </select>
 
-    <input type="text" id="name" placeholder="Product Name">
-    <input type="text" id="category" placeholder="Category">
+    <input type="text" id="name" placeholder="Product Name" required>
+    <input type="text" id="category" placeholder="Category" required>
     <input type="text" id="subcategory" placeholder="Subcategory">
-    <input type="text" id="img" placeholder="Image URL">
-    <input type="text" id="link" placeholder="Product Link">
-    <input type="text" id="price" placeholder="Price">
-    <input type="number" id="rating" placeholder="Rating (1-5)" min="1" max="5">
+    <input type="url" id="img" placeholder="Image URL">
+    <input type="url" id="link" placeholder="Product Link">
+    <input type="number" id="price" placeholder="Price" min="0" step="0.01" required>
+    <input type="number" id="rating" placeholder="Rating (1-5)" min="1" max="5" step="0.1">
     
-    <button onclick="addProduct()">Add Product</button>
-    <h3>Products List</h3>
-    <pre id="output"></pre>
+    <button id="addBtn" onclick="addProduct()">Add Product</button>
+    <h3>Current JSON Data</h3>
+    <pre id="output">Loading...</pre>
+    <div id="errorMsg" class="error"></div>
     
-    <button onclick="updateGitHubJSON()">Update GitHub JSON</button>
+    <button id="updateBtn" onclick="updateGitHubJSON()" disabled>Update GitHub JSON</button>
 
     <script>
-        const GITHUB_USERNAME = "your-username";
-        const REPO_NAME = "your-main-repo"; // Repo where JSON files exist
-        const TOKEN = "your-github-token";  // GitHub PAT (keep secret)
+        const CONFIG = {
+            username: "souravdpal",
+            repo: "data.json",
+            token: "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"
+        };
 
         let products = [];
+        const outputEl = document.getElementById('output');
+        const errorEl = document.getElementById('errorMsg');
+        const updateBtn = document.getElementById('updateBtn');
+
+        async function fetchExistingJSON() {
+            const selectedFile = document.getElementById('fileChoice').value;
+            const url = `https://api.github.com/repos/${CONFIG.username}/${CONFIG.repo}/contents/${selectedFile}`;
+
+            try {
+                outputEl.textContent = 'Loading...';
+                errorEl.textContent = '';
+                
+                const response = await fetch(url, {
+                    headers: { 
+                        Authorization: `token ${CONFIG.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`GitHub API error: ${response.status}`);
+                }
+
+                const fileData = await response.json();
+                products = JSON.parse(atob(fileData.content));
+                outputEl.textContent = JSON.stringify(products, null, 4);
+                updateBtn.disabled = false;
+            } catch (error) {
+                products = [];
+                outputEl.textContent = 'No data available';
+                errorEl.textContent = `Error fetching JSON: ${error.message}`;
+                updateBtn.disabled = true;
+            }
+        }
+
+        function validateInputs() {
+            const name = document.getElementById('name').value.trim();
+            const category = document.getElementById('category').value.trim();
+            const price = document.getElementById('price').value;
+
+            if (!name || !category || !price) {
+                errorEl.textContent = 'Name, Category, and Price are required';
+                return false;
+            }
+            return true;
+        }
 
         function addProduct() {
-            let product = {
-                id: products.length + 1,
-                name: document.getElementById('name').value,
-                category: document.getElementById('category').value,
-                subcategory: document.getElementById('subcategory').value,
-                img: document.getElementById('img').value,
-                link: document.getElementById('link').value,
-                price: document.getElementById('price').value,
+            if (!validateInputs()) return;
+
+            const product = {
+                id: Date.now(), // More unique ID than incremental
+                name: document.getElementById('name').value.trim(),
+                category: document.getElementById('category').value.trim(),
+                subcategory: document.getElementById('subcategory').value.trim() || 'N/A',
+                img: document.getElementById('img').value.trim() || '',
+                link: document.getElementById('link').value.trim() || '',
+                price: parseFloat(document.getElementById('price').value) || 0,
                 rating: parseFloat(document.getElementById('rating').value) || 4.0
             };
-            
+
             products.push(product);
-            document.getElementById('output').textContent = JSON.stringify(products, null, 4);
+            outputEl.textContent = JSON.stringify(products, null, 4);
+            errorEl.textContent = '';
             
-            // Clear input fields
-            document.querySelectorAll("input").forEach(input => input.value = "");
+            document.querySelectorAll('input').forEach(input => input.value = '');
+            updateBtn.disabled = false;
         }
 
         async function updateGitHubJSON() {
             const selectedFile = document.getElementById('fileChoice').value;
-            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${selectedFile}`;
+            const url = `https://api.github.com/repos/${CONFIG.username}/${CONFIG.repo}/contents/${selectedFile}`;
 
             try {
-                // Fetch current SHA of the file
-                const response = await fetch(url, {
-                    headers: { Authorization: `token ${TOKEN}` }
+                updateBtn.disabled = true;
+                errorEl.textContent = 'Updating...';
+
+                // Get current file SHA
+                const fetchResponse = await fetch(url, {
+                    headers: { 
+                        Authorization: `token ${CONFIG.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
                 });
-                const fileData = await response.json();
+
+                if (!fetchResponse.ok) {
+                    throw new Error(`Failed to fetch file: ${fetchResponse.status}`);
+                }
+
+                const fileData = await fetchResponse.json();
                 const sha = fileData.sha;
 
-                // Prepare update
+                // Update file
                 const updatedContent = btoa(JSON.stringify(products, null, 4));
-                const commitMessage = `Updated ${selectedFile} via script`;
+                const commitMessage = `Updated ${selectedFile} - ${new Date().toISOString()}`;
 
-                const body = JSON.stringify({
-                    message: commitMessage,
-                    content: updatedContent,
-                    sha: sha
-                });
-
-                // Send update request
                 const updateResponse = await fetch(url, {
-                    method: "PUT",
+                    method: 'PUT',
                     headers: {
-                        Authorization: `token ${TOKEN}`,
-                        "Content-Type": "application/json"
+                        Authorization: `token ${CONFIG.token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
                     },
-                    body: body
+                    body: JSON.stringify({
+                        message: commitMessage,
+                        content: updatedContent,
+                        sha: sha
+                    })
                 });
 
-                const result = await updateResponse.json();
-
-                if (result.commit) {
-                    alert(`${selectedFile} updated successfully!`);
-                } else {
-                    alert("Failed to update. Check console.");
-                    console.error(result);
+                if (!updateResponse.ok) {
+                    throw new Error(`Failed to update: ${updateResponse.status}`);
                 }
+
+                errorEl.textContent = 'Successfully updated!';
+                setTimeout(() => errorEl.textContent = '', 3000);
             } catch (error) {
-                alert("Error updating JSON. Check console.");
-                console.error(error);
+                errorEl.textContent = `Error updating JSON: ${error.message}`;
+                updateBtn.disabled = false;
             }
         }
+
+        window.onload = fetchExistingJSON;
     </script>
 </body>
 </html>
