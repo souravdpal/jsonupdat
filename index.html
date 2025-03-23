@@ -3,187 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product JSON Manager</title>
-    <link rel="icon" href="data:,">
+    <title>Product JSON Creator</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-        input, select, button { width: 90%; max-width: 400px; margin-bottom: 10px; padding: 10px; }
-        button { background: #007bff; color: white; border: none; cursor: pointer; font-size: 16px; }
-        button:hover { background: #0056b3; }
-        button:disabled { background: #cccccc; cursor: not-allowed; }
-        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; text-align: left; max-width: 400px; margin: 10px auto; }
-        .error { color: red; font-size: 14px; }
-        @media (max-width: 500px) { input, select, button { width: 100%; } }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            padding: 20px; 
+            background: #f0f2f5; 
+            line-height: 1.6;
+        }
+        .container { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+            max-width: 500px; 
+            margin: 0 auto 20px;
+        }
+        h2 { 
+            color: #333; 
+            margin-top: 0; 
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 0.9em;
+        }
+        input { 
+            width: 100%; 
+            padding: 10px; 
+            border-radius: 6px; 
+            border: 1px solid #ddd; 
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #28a745;
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            margin-top: 15px; 
+            border-radius: 6px; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #addBtn { 
+            background: #28a745; 
+            color: white; 
+        }
+        #addBtn:hover { 
+            background: #218838; 
+        }
+        #downloadBtn { 
+            background: #007bff; 
+            color: white; 
+            max-width: 200px;
+            margin: 0 auto;
+            display: block;
+        }
+        #downloadBtn:hover { 
+            background: #0069d9; 
+        }
+        pre { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 6px; 
+            max-width: 700px; 
+            margin: 20px auto; 
+            overflow-x: auto; 
+            border: 1px solid #eee;
+            font-size: 0.9em;
+        }
+        .error { 
+            border-color: #dc3545 !important; 
+        }
+        .message {
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
+            display: none;
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+        }
     </style>
 </head>
 <body>
-    <h2>Enter Product Details</h2>
+    <div class="container">
+        <h2>Product JSON Creator</h2>
+        <div class="input-group">
+            <label for="name">Product Name *</label>
+            <input type="text" id="name" placeholder="Enter product name" required>
+        </div>
+        <div class="input-group">
+            <label for="category">Category</label>
+            <input type="text" id="category" placeholder="Enter category">
+        </div>
+        <div class="input-group">
+            <label for="subcategory">Subcategory</label>
+            <input type="text" id="subcategory" placeholder="Enter subcategory">
+        </div>
+        <div class="input-group">
+            <label for="img">Image URL</label>
+            <input type="url" id="img" placeholder="https://example.com/image.jpg">
+        </div>
+        <div class="input-group">
+            <label for="link">Product Link</label>
+            <input type="url" id="link" placeholder="https://example.com/product">
+        </div>
+        <div class="input-group">
+            <label for="price">Price *</label>
+            <input type="number" id="price" placeholder="Enter price" step="0.01" min="0" required>
+        </div>
+        <div class="input-group">
+            <label for="rating">Rating (1-5)</label>
+            <input type="number" id="rating" placeholder="Enter rating" min="1" max="5" step="0.1">
+        </div>
+        <button id="addBtn">Add Product</button>
+        <div id="message" class="message"></div>
+    </div>
     
-    <select id="fileChoice" onchange="fetchExistingJSON()">
-        <option value="data.json">Update Data JSON</option>
-        <option value="announcements.json">Update Announcements JSON</option>
-    </select>
-
-    <input type="text" id="name" placeholder="Product Name" required>
-    <input type="text" id="category" placeholder="Category" required>
-    <input type="text" id="subcategory" placeholder="Subcategory">
-    <input type="url" id="img" placeholder="Image URL">
-    <input type="url" id="link" placeholder="Product Link">
-    <input type="number" id="price" placeholder="Price" min="0" step="0.01" required>
-    <input type="number" id="rating" placeholder="Rating (1-5)" min="1" max="5" step="0.1">
+    <h3 style="text-align: center; color: #333;">Products List</h3>
+    <pre id="output"></pre>
+    <button id="downloadBtn">Download JSON</button>
     
-    <button id="addBtn" onclick="addProduct()">Add Product</button>
-    <h3>Current JSON Data</h3>
-    <pre id="output">Loading...</pre>
-    <div id="errorMsg" class="error"></div>
-    
-    <button id="updateBtn" onclick="updateGitHubJSON()" disabled>Update GitHub JSON</button>
-
     <script>
-        const CONFIG = {
-            username: "souravdpal",
-            repo: "data.json",
-            token: "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" // Replace with your new GitHub PAT
-        };
-
         let products = [];
-        const outputEl = document.getElementById('output');
-        const errorEl = document.getElementById('errorMsg');
-        const updateBtn = document.getElementById('updateBtn');
+        const output = document.getElementById('output');
+        const addBtn = document.getElementById('addBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const message = document.getElementById('message');
+        const requiredFields = ['name', 'price'];
 
-        async function fetchExistingJSON() {
-            const selectedFile = document.getElementById('fileChoice').value;
-            const url = `https://api.github.com/repos/${CONFIG.username}/${CONFIG.repo}/contents/${selectedFile}`;
+        function showMessage(text, isSuccess) {
+            message.textContent = text;
+            message.className = `message ${isSuccess ? 'success' : ''}`;
+            message.style.display = 'block';
+            setTimeout(() => message.style.display = 'none', 2000);
+        }
 
-            try {
-                outputEl.textContent = 'Loading...';
-                errorEl.textContent = '';
-                
-                const response = await fetch(url, {
-                    headers: { 
-                        Authorization: `token ${CONFIG.token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
+        addBtn.addEventListener('click', () => {
+            const inputs = document.querySelectorAll('input');
+            let product = { id: products.length + 1 };
+            let isValid = true;
 
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        throw new Error('Unauthorized: Invalid GitHub token. Please check your token and ensure it has the correct permissions and repository access.');
-                    } else if (response.status === 404) {
-                        throw new Error('File not found in repository. Ensure the file exists.');
-                    } else {
-                        throw new Error(`GitHub API error: ${response.status} - ${response.statusText}`);
-                    }
+            inputs.forEach(input => {
+                input.classList.remove('error');
+                if (requiredFields.includes(input.id) && !input.value) {
+                    input.classList.add('error');
+                    isValid = false;
                 }
+                product[input.id] = input.type === 'number' ? 
+                    parseFloat(input.value) || undefined : 
+                    input.value || undefined;
+            });
 
-                const fileData = await response.json();
-                products = JSON.parse(atob(fileData.content));
-                outputEl.textContent = JSON.stringify(products, null, 4);
-                updateBtn.disabled = false;
-            } catch (error) {
-                products = [];
-                outputEl.textContent = 'No data available';
-                errorEl.textContent = `Error fetching JSON: ${error.message}`;
-                updateBtn.disabled = true;
+            if (!isValid) {
+                showMessage('Please fill in all required fields', false);
+                return;
             }
-        }
 
-        function validateInputs() {
-            const name = document.getElementById('name').value.trim();
-            const category = document.getElementById('category').value.trim();
-            const price = document.getElementById('price').value;
-
-            if (!name || !category || !price) {
-                errorEl.textContent = 'Name, Category, and Price are required';
-                return false;
+            if (product.rating && (product.rating < 1 || product.rating > 5)) {
+                document.getElementById('rating').classList.add('error');
+                showMessage('Rating must be between 1 and 5', false);
+                return;
             }
-            return true;
-        }
-
-        function addProduct() {
-            if (!validateInputs()) return;
-
-            const product = {
-                id: Date.now(),
-                name: document.getElementById('name').value.trim(),
-                category: document.getElementById('category').value.trim(),
-                subcategory: document.getElementById('subcategory').value.trim() || 'N/A',
-                img: document.getElementById('img').value.trim() || '',
-                link: document.getElementById('link').value.trim() || '',
-                price: parseFloat(document.getElementById('price').value) || 0,
-                rating: parseFloat(document.getElementById('rating').value) || 4.0
-            };
 
             products.push(product);
-            outputEl.textContent = JSON.stringify(products, null, 4);
-            errorEl.textContent = '';
-            
-            document.querySelectorAll('input').forEach(input => input.value = '');
-            updateBtn.disabled = false;
-        }
+            output.textContent = JSON.stringify(products, null, 2);
+            inputs.forEach(input => input.value = '');
+            showMessage('Product added successfully!', true);
+        });
 
-        async function updateGitHubJSON() {
-            const selectedFile = document.getElementById('fileChoice').value;
-            const url = `https://api.github.com/repos/${CONFIG.username}/${CONFIG.repo}/contents/${selectedFile}`;
-
-            try {
-                updateBtn.disabled = true;
-                errorEl.textContent = 'Updating...';
-
-                const fetchResponse = await fetch(url, {
-                    headers: { 
-                        Authorization: `token ${CONFIG.token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-
-                if (!fetchResponse.ok) {
-                    if (fetchResponse.status === 401) {
-                        throw new Error('Unauthorized: Invalid GitHub token. Please check your token and ensure it has the correct permissions and repository access.');
-                    } else if (fetchResponse.status === 404) {
-                        throw new Error('File not found in repository. Ensure the file exists.');
-                    } else {
-                        throw new Error(`Failed to fetch file: ${fetchResponse.status} - ${fetchResponse.statusText}`);
-                    }
-                }
-
-                const fileData = await fetchResponse.json();
-                const sha = fileData.sha;
-
-                const updatedContent = btoa(JSON.stringify(products, null, 4));
-                const commitMessage = `Updated ${selectedFile} - ${new Date().toISOString()}`;
-
-                const updateResponse = await fetch(url, {
-                    method: 'PUT',
-                    headers: {
-                        Authorization: `token ${CONFIG.token}`,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github.v3+json'
-                    },
-                    body: JSON.stringify({
-                        message: commitMessage,
-                        content: updatedContent,
-                        sha: sha
-                    })
-                });
-
-                if (!updateResponse.ok) {
-                    if (updateResponse.status === 401) {
-                        throw new Error('Unauthorized: Invalid GitHub token. Please check your token and ensure it has the correct permissions and repository access.');
-                    } else {
-                        throw new Error(`Failed to update: ${updateResponse.status} - ${updateResponse.statusText}`);
-                    }
-                }
-
-                errorEl.textContent = 'Successfully updated!';
-                setTimeout(() => errorEl.textContent = '', 3000);
-            } catch (error) {
-                errorEl.textContent = `Error updating JSON: ${error.message}`;
-                updateBtn.disabled = false;
+        downloadBtn.addEventListener('click', () => {
+            if (!products.length) {
+                showMessage('No products to download', false);
+                return;
             }
-        }
-
-        window.onload = fetchExistingJSON;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(products, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.href = dataStr;
+            downloadAnchor.download = `products_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            document.body.removeChild(downloadAnchor);
+        });
     </script>
 </body>
 </html>
