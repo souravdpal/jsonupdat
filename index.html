@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product JSON Manager</title>
-    <!-- Add a favicon to prevent 404 errors -->
     <link rel="icon" href="data:,">
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
@@ -42,9 +41,9 @@
 
     <script>
         const CONFIG = {
-            username: "souravdpal", // Updated username
-            repo: "data.json",       // Updated repository name
-            token: "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" // Replace with your new GitHub PAT
+            username: "souryadypal",
+            repo: "data_json",
+            token: "your-new-token-here" // Replace with your new GitHub PAT
         };
 
         let products = [];
@@ -69,7 +68,7 @@
 
                 if (!response.ok) {
                     if (response.status === 401) {
-                        throw new Error('Unauthorized: Invalid GitHub token. Please check your token and ensure it has "repo" scope.');
+                        throw new Error('Unauthorized: Invalid GitHub token. Please check your token and ensure it has the correct permissions and repository access.');
                     } else if (response.status === 404) {
                         throw new Error('File not found in repository. Ensure the file exists.');
                     } else {
@@ -140,7 +139,7 @@
 
                 if (!fetchResponse.ok) {
                     if (fetchResponse.status === 401) {
-                        throw new Error('Unauthorized: Invalid GitHub token. Please check your token and ensure it has "repo" scope.');
+                        throw new Error('Unauthorized: Invalid GitHub token. Please check your token and ensure it has the correct permissions and repository access.');
                     } else if (fetchResponse.status === 404) {
                         throw new Error('File not found in repository. Ensure the file exists.');
                     } else {
@@ -170,7 +169,7 @@
 
                 if (!updateResponse.ok) {
                     if (updateResponse.status === 401) {
-                        throw new Error('Unauthorized: Invalid GitHub token. Please check your token and ensure it has "repo" scope.');
+                        throw new Error('Unauthorized: Invalid GitHub token. Please check your token and ensure it has the correct permissions and repository access.');
                     } else {
                         throw new Error(`Failed to update: ${updateResponse.status} - ${updateResponse.statusText}`);
                     }
